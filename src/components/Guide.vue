@@ -22,11 +22,14 @@
         next
       </button>
     </div>
+  </div>
 
-    <div v-if="!showSelectedOption">
-      <div class="results-container">
-        {{ selectedOption.label }}
-        {{ test }}
+  <div v-if="!showSelectedOption">
+    <div class="results-container">
+      {{ selectedOption.label }}
+      <div v-for="paper in paperData" :key="paper.title">
+        <p>{{ paper.title }}</p>
+        <a :href="paper.pdfUrl">pdf</a>
       </div>
     </div>
   </div>
@@ -34,9 +37,9 @@
 
 <script>
 import { createApp, ref } from "vue";
-import fetch from "node-fetch";
+// import fetch from "node-fetch";
+import axios from "axios";
 import { DOMParser } from "xmldom";
-import { promises as fsPromises } from "fs";
 import path from "path";
 
 export default {
@@ -45,17 +48,48 @@ export default {
   data() {
     return {
       showSelectedOption: true,
-      test: "nana",
-      papers: null,
+      paperData: null,
     };
   },
 
   updated() {
-    if (!this.showSelectedOption) {
-      this.test = "baba";
+    const searchPapers = async (searchQuery, maxResults) => {
+      const arXivEndpoint = `https://export.arxiv.org/api/query?search_query=${encodeURIComponent(
+        searchQuery
+      )}&max_results=${maxResults}&sortBy=submittedDate&sortOrder=descending`;
 
-      this.getPapers(selectedOption.label);
-    }
+      try {
+        const response = await axios.get(arXivEndpoint);
+        const xmlString = response.data;
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(xmlString, "text/xml");
+        const entries = xml.getElementsByTagName("entry");
+        const papersData = Array.from(entries).map((entry) => {
+          const title = entry.getElementsByTagName("title")[0].textContent;
+          const pdfUrl = Array.from(entry.getElementsByTagName("link"))
+            .find((link) => link.getAttribute("title") === "pdf")
+            .getAttribute("href");
+          return { title, pdfUrl };
+        });
+        return papersData;
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    const maxResults = 3; // Maximum number of results to retrieve
+    searchPapers(this.selectedOption.label, maxResults).then((papers) => {
+      console.log(papers);
+      this.loaded = true;
+      this.paperData = papers;
+    });
+
+    // if (!this.showSelectedOption) {
+    //   this.test = "baba";
+
+    //   // Example usage:
+
+    // }
   },
 
   setup() {

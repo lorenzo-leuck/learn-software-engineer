@@ -1,13 +1,10 @@
 <template>
   <div id="app">
-    <AnimatedBackground>
+    <!-- <AnimatedBackground> -->
 
-    
-            
-        <Guide /> 
+    <Guide />
 
-    </AnimatedBackground>
-
+    <!-- </AnimatedBackground> -->
   </div>
 </template>
 
