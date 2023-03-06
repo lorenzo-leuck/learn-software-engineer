@@ -22,14 +22,26 @@
         next
       </button>
     </div>
-  </div>
 
-  <div v-if="!showSelectedOption">
-    <div class="results-container">
-      {{ selectedOption.label }}
-      <div v-for="paper in paperData" :key="paper.title">
-        <p>{{ paper.title }}</p>
-        <a :href="paper.pdfUrl">pdf</a>
+    <div v-if="!showSelectedOption">
+      <div class="results-container">
+        {{ selectedOption.label }}
+        <ul>
+          <li v-for="paper in paperData" :key="paper.title">
+            <p>{{ paper.title }}</p>
+            <a :href="paper.pdfUrl">pdf</a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="button-container">
+        <button
+          class="next-button"
+          :disabled="!selectedOption"
+          @click="navigateToNextPage()"
+        >
+          voltar
+        </button>
       </div>
     </div>
   </div>
@@ -48,48 +60,20 @@ export default {
   data() {
     return {
       showSelectedOption: true,
+      loaded: false,
       paperData: null,
     };
   },
 
-  updated() {
-    const searchPapers = async (searchQuery, maxResults) => {
-      const arXivEndpoint = `https://export.arxiv.org/api/query?search_query=${encodeURIComponent(
-        searchQuery
-      )}&max_results=${maxResults}&sortBy=submittedDate&sortOrder=descending`;
-
-      try {
-        const response = await axios.get(arXivEndpoint);
-        const xmlString = response.data;
-        const parser = new DOMParser();
-        const xml = parser.parseFromString(xmlString, "text/xml");
-        const entries = xml.getElementsByTagName("entry");
-        const papersData = Array.from(entries).map((entry) => {
-          const title = entry.getElementsByTagName("title")[0].textContent;
-          const pdfUrl = Array.from(entry.getElementsByTagName("link"))
-            .find((link) => link.getAttribute("title") === "pdf")
-            .getAttribute("href");
-          return { title, pdfUrl };
+  watch: {
+    selectedOption: function (newOption, oldOption) {
+      if (newOption) {
+        this.getPapers(this.selectedOption.label, 3).then((papers) => {
+          this.loaded = true;
+          this.paperData = papers;
         });
-        return papersData;
-      } catch (error) {
-        console.error(error);
       }
-    };
-
-    const maxResults = 3; // Maximum number of results to retrieve
-    searchPapers(this.selectedOption.label, maxResults).then((papers) => {
-      console.log(papers);
-      this.loaded = true;
-      this.paperData = papers;
-    });
-
-    // if (!this.showSelectedOption) {
-    //   this.test = "baba";
-
-    //   // Example usage:
-
-    // }
+    },
   },
 
   setup() {
@@ -139,7 +123,31 @@ export default {
 
   methods: {
     navigateToNextPage() {
-      this.showSelectedOption = false;
+      this.showSelectedOption = !this.showSelectedOption;
+    },
+    getPapers: async (searchQuery, maxResults) => {
+      const arXivEndpoint = `https://export.arxiv.org/api/query?search_query=${encodeURIComponent(
+        searchQuery
+      )}&max_results=${maxResults}&sortBy=submittedDate&sortOrder=descending`;
+      console.log(arXivEndpoint);
+      try {
+        const response = await axios.get(arXivEndpoint);
+        const xmlString = response.data;
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(xmlString, "text/xml");
+        const entries = xml.getElementsByTagName("entry");
+        const papersData = Array.from(entries).map((entry) => {
+          const title = entry.getElementsByTagName("title")[0].textContent;
+          const pdfUrl = Array.from(entry.getElementsByTagName("link"))
+            .find((link) => link.getAttribute("title") === "pdf")
+            .getAttribute("href");
+          return { title, pdfUrl };
+        });
+
+        return papersData;
+      } catch (error) {
+        console.error(error);
+      }
     },
   },
 };
@@ -172,7 +180,9 @@ export default {
 }
 
 .results-container {
+  font-size: 20px !important;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   font-size: 30px;
