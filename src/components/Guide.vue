@@ -22,11 +22,22 @@
         next
       </button>
     </div>
+
+    <div v-if="!showSelectedOption">
+      <div class="results-container">
+        {{ selectedOption.label }}
+        {{ test }}
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
-import { ref } from "vue";
+import { createApp, ref } from "vue";
+import fetch from "node-fetch";
+import { DOMParser } from "xmldom";
+import { promises as fsPromises } from "fs";
+import path from "path";
 
 export default {
   name: "Guide",
@@ -34,7 +45,17 @@ export default {
   data() {
     return {
       showSelectedOption: true,
+      test: "nana",
+      papers: null,
     };
+  },
+
+  updated() {
+    if (!this.showSelectedOption) {
+      this.test = "baba";
+
+      this.getPapers(selectedOption.label);
+    }
   },
 
   setup() {
@@ -114,6 +135,14 @@ export default {
 .button-container {
   display: flex;
   justify-content: center;
+}
+
+.results-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 30px;
+  color: black;
 }
 
 .next-button {
